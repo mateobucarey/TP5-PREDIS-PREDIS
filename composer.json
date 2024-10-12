@@ -1,0 +1,17 @@
+{
+    "name": "lark/tp5",
+    "autoload": {
+        "psr-4": {
+            "Lark\\Tp5\\": "src/"
+        }
+    },
+    "authors": [
+        {
+            "name": "mateo",
+            "email": "mateobucarey017@gmail.com"
+        }
+    ],
+    "require": {
+        "predis/predis": "^2.2"
+    }
+}

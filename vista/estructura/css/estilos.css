@@ -1,0 +1,28 @@
+html, body {
+    height: 100%;
+    margin: 0;
+}
+
+body {
+    display: flex;
+    flex-direction: column;
+}
+
+header {
+    background-color: #333; 
+}
+
+footer {
+    margin-top: auto; 
+    background-color: #333; 
+    color: #fff;
+}
+
+.error-message {
+    color: #dc3545 !important;
+    font-size: 0.875em;
+}
+
+.is-invalid {
+    border-color: #dc3545;
+}
