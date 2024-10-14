@@ -63,72 +63,120 @@ class Auto {
         $this->mensajeoperacion = $valor;
     }
 
-    public function cargar(){
+    public function cargar() {
+        global $client; // Usamos el cliente de Redis global
         $msj = false;
+    
+        // Clave para el cache de Redis basada en la patente del auto
+        $cacheKey = 'auto:' . $this->getPatente();
+        $registroCache = $client->get($cacheKey); // Verificar si el auto está en Redis
+    
+        if ($registroCache) {
+            // Si el auto está en cache, cargamos los datos desde Redis
+            $registro = json_decode($registroCache, true);
+            $this->setear($registro['patente'], $registro['marca'], $registro['modelo'], $registro['dniDuenio']);
+            return true;
+        }
+    
+        // Si no está en cache, consultamos la base de datos
         $base = new BaseDatos();
-        $sql = "SELECT * FROM auto WHERE patente = '".$this->getPatente()."'";
+        $sql = "SELECT * FROM auto WHERE patente = '" . $this->getPatente() . "'";
         if ($base->Iniciar()) {
             $res = $base->Ejecutar($sql);
-            if($res > -1){
-                if($res > 0){
+            if ($res > -1) {
+                if ($res > 0) {
                     $registro = $base->Registro();
-                    $this->setear($registro['patente'], $registro['marca'], $registro['modelo'], $registro['dniDuenio']);   
+                    $this->setear($registro['patente'], $registro['marca'], $registro['modelo'], $registro['dniDuenio']);
+    
+                    // Almacenar en Redis
+                    $client->set($cacheKey, json_encode($registro));
+    
                     $msj = true;
                 }
             }
         } else {
-            $this->setmensajeoperacion("Auto->cargar: ".$base->getError());
+            $this->setmensajeoperacion("Auto->cargar: " . $base->getError());
         }
-        return $msj;    
+    
+        return $msj;
     }
-
-    public function insertar(){
+    
+    public function insertar() {
+        global $client; // Usamos el cliente de Redis global
         $msj = false;
         $base = new BaseDatos();
         $sql = "INSERT INTO auto(patente, marca, modelo, dniDuenio) VALUES('".$this->getPatente()."', '".$this->getMarca()."', ".$this->getModelo().", '".$this->getObjDuenio()->getNroDni()."');";
+    
         if ($base->Iniciar()) {
             if ($base->Ejecutar($sql)) {
+                // Almacenar en Redis
+                $registro = [
+                    'patente' => $this->getPatente(),
+                    'marca' => $this->getMarca(),
+                    'modelo' => $this->getModelo(),
+                    'dniDuenio' => $this->getObjDuenio()->getNroDni()
+                ];
+                $client->set('auto:' . $this->getPatente(), json_encode($registro)); // Guardar en Redis
                 $msj = true;
             } else {
-                $this->setmensajeoperacion("Auto->insertar: ".$base->getError());
+                $this->setmensajeoperacion("Auto->insertar: " . $base->getError());
             }
         } else {
-            $this->setmensajeoperacion("Auto->insertar: ".$base->getError());
+            $this->setmensajeoperacion("Auto->insertar: " . $base->getError());
         }
+    
         return $msj;
     }
+    
 
-    public function modificar(){
+    public function modificar() {
+        global $client; // Usamos el cliente de Redis global
         $msj = false;
         $base = new BaseDatos();
         $sql = "UPDATE auto SET marca='".$this->getMarca()."', modelo=".$this->getModelo().", dniDuenio='".$this->getObjDuenio()->getNroDni()."' WHERE patente='".$this->getPatente()."'";
+        
         if ($base->Iniciar()) {
             if ($base->Ejecutar($sql)) {
+                // Actualizar en Redis
+                $registro = [
+                    'patente' => $this->getPatente(),
+                    'marca' => $this->getMarca(),
+                    'modelo' => $this->getModelo(),
+                    'dniDuenio' => $this->getObjDuenio()->getNroDni()
+                ];
+                $client->set('auto:' . $this->getPatente(), json_encode($registro)); // Actualizar en Redis
                 $msj = true;
             } else {
-                $this->setmensajeoperacion("Auto->modificar: ".$base->getError());
+                $this->setmensajeoperacion("Auto->modificar: " . $base->getError());
             }
         } else {
-            $this->setmensajeoperacion("Auto->modificar: ".$base->getError());
+            $this->setmensajeoperacion("Auto->modificar: " . $base->getError());
         }
+    
         return $msj;
     }
 
-    public function eliminar(){
+    public function eliminar() {
+        global $client; // Usamos el cliente de Redis global
         $msj = false;
         $base = new BaseDatos();
-        $sql = "DELETE FROM auto WHERE patente='".$this->getPatente()."'";
+        $sql = "DELETE FROM auto WHERE patente='" . $this->getPatente() . "'";
+    
         if ($base->Iniciar()) {
             if ($base->Ejecutar($sql)) {
+                // Eliminar de Redis
+                $client->del('auto:' . $this->getPatente()); // Borrar de Redis
                 $msj = true;
             } else {
-                $this->setmensajeoperacion("Auto->eliminar: ".$base->getError());
+                $this->setmensajeoperacion("Auto->eliminar: " . $base->getError());
             }
         } else {
-            $this->setmensajeoperacion("Auto->eliminar: ".$base->getError());
+            $this->setmensajeoperacion("Auto->eliminar: " . $base->getError());
         }
+    
         return $msj;
     }
+    
 
     public static function listar($parametro=""){
         $arreglo = array();

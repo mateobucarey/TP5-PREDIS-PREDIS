@@ -8,13 +8,14 @@ header("Cache-Control: no-cache, must-revalidate");
 // CONFIGURACION APP//
 /////////////////////////////
 
-$PROYECTO = 'phpMysql';
+$PROYECTO = 'tp5';
 
 // Variable que almacena el directorio del proyecto
 $ROOT = $_SERVER['DOCUMENT_ROOT']."/$PROYECTO/";
 
 // Incluye el archivo de funciones
 include_once($ROOT.'util/funciones.php');
+include_once($ROOT.'redis.php');
 
 // Variable que define la página de autenticación del proyecto
 $INICIO = "Location:http://".$_SERVER['HTTP_HOST']."/$PROYECTO/vista/login/login.php";

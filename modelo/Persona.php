@@ -88,74 +88,118 @@ class Persona {
         $this->mensajeoperacion = $valor;
     }
     
-    public function cargar(){
+    public function cargar() {
+        global $client;
         $msj = false;
-        $base=new BaseDatos();
-        $sql= "SELECT * FROM persona WHERE nroDni = ".$this->getNroDni();
+
+        // Verifica si el registro está en Redis
+        $cacheKey = 'persona:' . $this->getNroDni();
+        $registroCache = $client->get($cacheKey); // Usando la conexión a Redis
+
+        if ($registroCache) {
+            // Si existe en cache, lo cargamos
+            $registro = json_decode($registroCache, true);
+            $this->setear($registro['nroDni'], $registro['apellido'], $registro['nombre'], $registro['fechaNac'], $registro['telefono'], $registro['domicilio']);
+            $msj = true;
+        }
+
+        $base = new BaseDatos();
+        $sql = "SELECT * FROM persona WHERE nroDni = " . $this->getNroDni();
         if ($base->Iniciar()) {
             $res = $base->Ejecutar($sql);
-            if($res > -1){
-                if($res > 0){
+            if ($res > -1) {
+                if ($res > 0) {
                     $registro = $base->Registro();
-                    $this->setear($registro['nroDni'], $registro['apellido'], $registro['nombre'], $registro['fechaNac'], $registro['telefono'], $registro['domicilio']);   
+                    $this->setear($registro['nroDni'], $registro['apellido'], $registro['nombre'], $registro['fechaNac'], $registro['telefono'], $registro['domicilio']);
+
+                    // Almacenar en Redis
+                    $client->set($cacheKey, json_encode($registro));
                     $msj = true;
                 }
             }
         } else {
-            $this->setmensajeoperacion("Persona->listar: ".$base->getError());
+            $this->setmensajeoperacion("Persona->listar: " . $base->getError());
         }
-        return $msj;    
+        return $msj;
     }
-    
-    public function insertar(){
+   
+    public function insertar() {
+        global $client;
         $msj = false;
-        $base=new BaseDatos();
+        $base = new BaseDatos();
         $sql = "INSERT INTO persona(nroDni, apellido, nombre, fechaNac, telefono, domicilio) VALUES ('" . 
        $this->getNroDni() . "', '" . $this->getApellido() . "', '" . $this->getNombre() . "', '" . 
        $this->getFechaNac() . "', '" . $this->getTelefono() . "', '" . $this->getDomicilio() . "');";
         if ($base->Iniciar()) {
             if ($base->Ejecutar($sql)) {
+                // Almacenar en Redis
+                $registro = [
+                    'nroDni' => $this->getNroDni(),
+                    'apellido' => $this->getApellido(),
+                    'nombre' => $this->getNombre(),
+                    'fechaNac' => $this->getFechaNac(),
+                    'telefono' => $this->getTelefono(),
+                    'domicilio' => $this->getDomicilio()
+                ];
+                $client->set('persona:' . $this->getNroDni(), json_encode($registro)); // Guardar en Redis
                 $msj = true;
             } else {
-                $this->setmensajeoperacion("Persona->insertar: ".$base->getError());
+                $this->setmensajeoperacion("Persona->insertar: " . $base->getError());
             }
         } else {
-            $this->setmensajeoperacion("Persona->insertar: ".$base->getError());
+            $this->setmensajeoperacion("Persona->insertar: " . $base->getError());
+        }
+        return $msj;
+    }
+
+    public function eliminar() {
+        global $client;
+        $msj = false;
+        $base = new BaseDatos();
+        $sql = "DELETE FROM persona WHERE nroDni=" . $this->getNroDni();
+        if ($base->Iniciar()) {
+            if ($base->Ejecutar($sql)) {
+                // Eliminar de Redis
+                $client->del('persona:' . $this->getNroDni()); // Borrar de Redis
+                $msj = true;
+            } else {
+                $this->setmensajeoperacion("Persona->eliminar: " . $base->getError());
+            }
+        } else {
+            $this->setmensajeoperacion("Persona->eliminar: " . $base->getError());
         }
         return $msj;
     }
     
-    public function modificar(){
+    public function modificar() {
+        global $client; // Usamos el cliente de Redis global
         $msj = false;
-        $base=new BaseDatos();
-        $sql="UPDATE persona SET apellido='".$this->getApellido()."',nombre='".$this->getNombre()."',fechaNac='".$this->getFechaNac()."',telefono='".$this->getTelefono()."',domicilio='".$this->getDomicilio()."' WHERE nroDni=".$this->getNroDni();
+        $base = new BaseDatos();
+        $sql = "UPDATE persona SET apellido='".$this->getApellido()."', nombre='".$this->getNombre()."', fechaNac='".$this->getFechaNac()."', telefono='".$this->getTelefono()."', domicilio='".$this->getDomicilio()."' WHERE nroDni=".$this->getNroDni();
+        
         if ($base->Iniciar()) {
             if ($base->Ejecutar($sql)) {
+                // Actualizar en Redis
+                $registro = [
+                    'nroDni' => $this->getNroDni(),
+                    'apellido' => $this->getApellido(),
+                    'nombre' => $this->getNombre(),
+                    'fechaNac' => $this->getFechaNac(),
+                    'telefono' => $this->getTelefono(),
+                    'domicilio' => $this->getDomicilio()
+                ];
+                $client->set('persona:' . $this->getNroDni(), json_encode($registro)); // Actualizar en Redis
                 $msj = true;
             } else {
-                $this->setmensajeoperacion("Persona->modificar: ".$base->getError());
+                $this->setmensajeoperacion("Persona->modificar: " . $base->getError());
             }
         } else {
-            $this->setmensajeoperacion("Persona->modificar: ".$base->getError());
+            $this->setmensajeoperacion("Persona->modificar: " . $base->getError());
         }
+    
         return $msj;
     }
     
-    public function eliminar(){
-        $msj = false;
-        $base=new BaseDatos();
-        $sql="DELETE FROM persona WHERE nroDni=".$this->getNroDni();
-        if ($base->Iniciar()) {
-            if ($base->Ejecutar($sql)) {
-                $msj = true;
-            } else {
-                $this->setmensajeoperacion("Persona->eliminar: ".$base->getError());
-            }
-        } else {
-            $this->setmensajeoperacion("Persona->eliminar: ".$base->getError());
-        }
-        return $msj;
-    }
     
     public static function listar($parametro=""){
         $arreglo = array();

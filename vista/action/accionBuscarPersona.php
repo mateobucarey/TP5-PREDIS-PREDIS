@@ -42,7 +42,7 @@ if (isset($datos['nroDni'])) {
             <div class="alert alert-danger">
                 <?php echo $mensaje; ?>
             </div>
-            <a href="BuscarPersona.html" class="btn btn-primary">Volver</a>
+            <a href="../buscarPersona.php" class="btn btn-primary">Volver</a>
         <?php else: ?>
             <h2>Modificar Datos de la Persona</h2>
             <form action="ActualizarDatosPersona.php" method="post">
