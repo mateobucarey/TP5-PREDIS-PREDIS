@@ -89,9 +89,13 @@ class Persona {
     }
     
     public function cargar() {
+        echo "esta cargando";
         global $client;
+        $base = new BaseDatos();
         $msj = false;
-
+        //$tiempoTotal = 0;
+        
+        $inicioRedis = microtime(true);
         // Verifica si el registro está en Redis
         $cacheKey = 'persona:' . $this->getNroDni();
         $registroCache = $client->get($cacheKey); // Usando la conexión a Redis
@@ -100,11 +104,16 @@ class Persona {
             // Si existe en cache, lo cargamos
             $registro = json_decode($registroCache, true);
             $this->setear($registro['nroDni'], $registro['apellido'], $registro['nombre'], $registro['fechaNac'], $registro['telefono'], $registro['domicilio']);
-            $msj = true;
-        }
 
-        $base = new BaseDatos();
-        $sql = "SELECT * FROM persona WHERE nroDni = " . $this->getNroDni();
+            //calculo de tiempo de la consulta
+            $finRedis = microtime(true);
+            $tiempoTotal = $finRedis - $inicioRedis;
+            echo "Tiempo de acceso a Redis: " . $tiempoTotal . " segundos\n";
+
+            $msj = true;
+        } else{
+            $inicioSQL = microtime(true);
+            $sql = "SELECT * FROM persona WHERE nroDni = " . $this->getNroDni();
         if ($base->Iniciar()) {
             $res = $base->Ejecutar($sql);
             if ($res > -1) {
@@ -112,6 +121,9 @@ class Persona {
                     $registro = $base->Registro();
                     $this->setear($registro['nroDni'], $registro['apellido'], $registro['nombre'], $registro['fechaNac'], $registro['telefono'], $registro['domicilio']);
 
+                    $finSQL = microtime(true);
+                    $tiempoTotal = $finSQL - $inicioSQL;
+                    echo "Tiempo de consulta SQL: " . $tiempoTotal . " segundos\n";
                     // Almacenar en Redis
                     $client->set($cacheKey, json_encode($registro));
                     $msj = true;
@@ -120,6 +132,7 @@ class Persona {
         } else {
             $this->setmensajeoperacion("Persona->listar: " . $base->getError());
         }
+        }   
         return $msj;
     }
    

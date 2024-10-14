@@ -64,9 +64,12 @@ class Auto {
     }
 
     public function cargar() {
+        echo "cargando auto";
         global $client; // Usamos el cliente de Redis global
+        $base = new BaseDatos();
         $msj = false;
     
+        $inicioRedis = microtime(true);
         // Clave para el cache de Redis basada en la patente del auto
         $cacheKey = 'auto:' . $this->getPatente();
         $registroCache = $client->get($cacheKey); // Verificar si el auto está en Redis
@@ -75,29 +78,36 @@ class Auto {
             // Si el auto está en cache, cargamos los datos desde Redis
             $registro = json_decode($registroCache, true);
             $this->setear($registro['patente'], $registro['marca'], $registro['modelo'], $registro['dniDuenio']);
-            return true;
-        }
-    
-        // Si no está en cache, consultamos la base de datos
-        $base = new BaseDatos();
-        $sql = "SELECT * FROM auto WHERE patente = '" . $this->getPatente() . "'";
-        if ($base->Iniciar()) {
-            $res = $base->Ejecutar($sql);
-            if ($res > -1) {
-                if ($res > 0) {
-                    $registro = $base->Registro();
-                    $this->setear($registro['patente'], $registro['marca'], $registro['modelo'], $registro['dniDuenio']);
-    
-                    // Almacenar en Redis
-                    $client->set($cacheKey, json_encode($registro));
-    
-                    $msj = true;
+            //calculo de tiempo de la consulta
+            $finRedis = microtime(true);
+            $tiempoTotal = $finRedis - $inicioRedis;
+            echo "Tiempo de acceso a Redis: " . $tiempoTotal . " segundos\n";
+
+            $msj = true;
+        }else{
+            $inicioSQL = microtime(true);
+            // Si no está en cache, consultamos la base de datos
+            $sql = "SELECT * FROM auto WHERE patente = '" . $this->getPatente() . "'";
+            if ($base->Iniciar()) {
+                $res = $base->Ejecutar($sql);
+                if ($res > -1) {
+                    if ($res > 0) {
+                        $registro = $base->Registro();
+                        $this->setear($registro['patente'], $registro['marca'], $registro['modelo'], $registro['dniDuenio']);
+        
+                        $finSQL = microtime(true);
+                        $tiempoTotal = $finSQL - $inicioSQL;
+                        echo "Tiempo de consulta SQL: " . $tiempoTotal . " segundos\n";    
+                        // Almacenar en Redis
+                        $client->set($cacheKey, json_encode($registro));
+        
+                        $msj = true;
+                    }
                 }
+            } else {
+                $this->setmensajeoperacion("Auto->cargar: " . $base->getError());
             }
-        } else {
-            $this->setmensajeoperacion("Auto->cargar: " . $base->getError());
         }
-    
         return $msj;
     }
     
