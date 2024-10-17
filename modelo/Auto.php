@@ -97,6 +97,7 @@ class Auto {
         
                         $finSQL = microtime(true);
                         $tiempoTotal = $finSQL - $inicioSQL;
+                       
                         echo "Tiempo de consulta SQL: " . $tiempoTotal . " segundos\n";    
                         // Almacenar en Redis
                         $client->set($cacheKey, json_encode($registro));

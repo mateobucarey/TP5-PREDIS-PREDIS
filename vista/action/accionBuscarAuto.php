@@ -14,7 +14,7 @@ if (count($autos) > 0) {
     $patente = $auto->getPatente();
     $marca = $auto->getMarca();
     $modelo = $auto->getModelo();
-    $dniDuenio = $auto->getObjDuenio()->getNroDni();
+    $dniDuenio = $auto->getObjDuenio();
 
     $verPersona = new ControlPersona();
     $personas = $verPersona->buscar(['nroDni' => $dniDuenio]);

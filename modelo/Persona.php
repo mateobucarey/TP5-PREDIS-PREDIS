@@ -89,7 +89,7 @@ class Persona {
     }
     
     public function cargar() {
-        echo "esta cargando";
+        //echo "\n cargando persona";
         global $client;
         $base = new BaseDatos();
         $msj = false;
@@ -105,10 +105,10 @@ class Persona {
             $registro = json_decode($registroCache, true);
             $this->setear($registro['nroDni'], $registro['apellido'], $registro['nombre'], $registro['fechaNac'], $registro['telefono'], $registro['domicilio']);
 
-            //calculo de tiempo de la consulta
             $finRedis = microtime(true);
             $tiempoTotal = $finRedis - $inicioRedis;
-            echo "Tiempo de acceso a Redis: " . $tiempoTotal . " segundos\n";
+            //echo "Tiempo de acceso a Redis: " . $tiempoTotal . " segundos\n";
+            echo "<script>console.log('Tiempo de acceso a Redis: ".$tiempoTotal." segundos');</script>";
 
             $msj = true;
         } else{
@@ -123,9 +123,13 @@ class Persona {
 
                     $finSQL = microtime(true);
                     $tiempoTotal = $finSQL - $inicioSQL;
-                    echo "Tiempo de consulta SQL: " . $tiempoTotal . " segundos\n";
+                    //echo "Tiempo de consulta SQL: " . $tiempoTotal . " segundos\n";
+                    echo "<script>console.log('Tiempo de acceso a SQL: ".$tiempoTotal." segundos');</script>";
+
+
                     // Almacenar en Redis
                     $client->set($cacheKey, json_encode($registro));
+                    
                     $msj = true;
                 }
             }
